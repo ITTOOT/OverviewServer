@@ -1,0 +1,17 @@
+﻿Select menu: Tools > NuGet Package Manager > Package Manager Console.
+Tyoe:
+	> Add-Migration CreateIdentitySchema -Context IdentityContext
+	> Update-Database CreateIdentitySchema -Context IdentityContext
+	= Builds the tables
+
+> Connected Services
+> SQL Server
+> Right click
+	> Add server
+	> (localdb)\MSSQLLocalDB
+> Open: Databases
+		> IdentityDB
+			> Tables
+			= Check for EFMigrationsHistory and tables e.g. AspNetRoles
+
+

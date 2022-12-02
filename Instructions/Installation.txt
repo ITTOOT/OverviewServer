@@ -1,0 +1,39 @@
+﻿Publish the app as an executable.
+
+dotnet publish -c Release -r win-x64 --self-contained false
+
+Copy contents from /bin/Release/net6.0/win-x64/publish/ folder to server. On the server, cd to the folder with the exe and run the exe from the command line.
+
+PS C:\inetpub\wwwroot\TestBlazor> .\blazor-server-as-service.exe
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://localhost:5000
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: C:\inetpub\wwwroot\TestBlazor\
+info: Microsoft.Hosting.Lifetime[0]
+Success.
+
+
+Configure new windows service.
+
+New-service -Name "TestBlazorService" -BinaryPathName C:\inetpub\wwwroot\TestBlazor\blazor-server-as-service.exe
+
+Edit the service to use my credentials. Grant log on as service rights. Start the service.
+
+PS> start-service TestBlazorService
+start-service : Service 'TestBlazorService (TestBlazorService)' cannot be started due to the following error: Cannot
+start service TestBlazorService on computer '.'.
+At line:1 char:1
++ start-service TestBlazorService
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OpenError: (System.ServiceProcess.ServiceController:ServiceController) [Start-Service],
+   ServiceCommandException
+    + FullyQualifiedErrorId : CouldNotStartService,Microsoft.PowerShell.Commands.StartServiceCommand
+
+
+
+
+From the event log:

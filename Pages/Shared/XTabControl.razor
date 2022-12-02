@@ -1,0 +1,54 @@
+﻿<!-- Tab pages pick up this value via [CascadingParameter] -->
+<CascadingValue Value="this">
+	<!-- Renders tabs and changes pages when tab selected-->
+	<div class="btn-group mb-3" role="group">
+		@foreach (XTabPage tabPage in Pages)
+		{
+		<!-- primary if active -->
+		<button type="button"
+			class="btn @GetButtonClass(tabPage)" 
+			@onclick=@(() => ActivatePage(tabPage))> <!-- Activate named tab page -->
+			@tabPage.Text <!-- Change button text -->
+		</button>
+		}
+	</div>
+	<br />
+	<!-- Page content -->
+	@ChildContent
+</CascadingValue>
+
+@code {
+	//PARAMETERS
+	// Next line is needed so we are able to add <TabPage> components inside
+	[Parameter]
+	public RenderFragment? ChildContent { get; set; }
+
+	//Declare an active page property
+	public XTabPage? ActivePage { get; set; }
+	//Declare a list of pages to be tabbed
+	List<XTabPage> Pages = new List<XTabPage>();
+
+	//Add page
+	internal async Task AddPage(XTabPage tabPage)
+	{
+		//Add a page to the list
+		Pages.Add(tabPage);
+		//Return tabbed to page
+		if (Pages.Count == 1)
+			ActivePage = tabPage;
+		//Notify DOM
+		await InvokeAsync(() => StateHasChanged());
+	}
+
+	//Get the CSS class fro the button
+	string GetButtonClass(XTabPage page)
+	{
+		return page == ActivePage ? "btn-primary" : "btn-secondary";
+	}
+
+	//Activate page
+	async Task ActivatePage(XTabPage page)
+	{
+		ActivePage = page;
+	}
+}

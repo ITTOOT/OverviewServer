@@ -1,0 +1,121 @@
+﻿@typeparam TRowData
+@using System.Linq.Expressions
+@using Humanizer
+
+@code {
+    //PARAMETERS
+	[CascadingParameter]
+    public XGrid<TRowData> OwnerGrid { get; set; }
+
+    [Parameter]
+    public string Title { get; set; }
+
+    [Parameter]
+    public Expression<Func<TRowData, object>>? Expression { get; set; }
+
+    [Parameter]
+    public string? Format { get; set; }
+
+    [Parameter]
+    public RenderFragment<TRowData> ChildContent { get; set; }
+
+    private Func<TRowData, object> compiledExpression;
+    private Expression? lastCompiledExpression;
+    private RenderFragment headerTemplate;
+    private RenderFragment<TRowData> cellTemplate;
+
+    //Add the column to the parent Grid component.
+    //OnInitialized is called only once in the component lifecycle
+    protected override void OnInitialized()
+    {
+        //Add this column to the the grid
+        OwnerGrid.AddColumn(this);
+    }
+
+    //OnParametersSet - when parameters are set check that a new expression is made available
+    protected override void OnParametersSet()
+    {
+        //Check for change
+        if (lastCompiledExpression != Expression)
+        {
+            compiledExpression = Expression?.Compile();
+            lastCompiledExpression = Expression;
+        }
+    }
+
+    //Render the header child content
+    internal RenderFragment HeaderTemplate
+    {
+        get
+        {
+            //Build the component to be rendered
+            return headerTemplate ??= (builder =>
+            {
+                // Use the provided title or infer it from the expression
+                var title = Title;
+
+                //Expression parameter is a function of row data nad an object
+                if (title == null && Expression != null)
+                {
+                    // Decamelize the property name (requires Humanizer.Core NuGet package). Add the following line in the csproj:
+                    // <PackageReference Include="Humanizer.Core" Version="2.8.26" />#
+                    //Get the name using internal method
+                    title = GetMemberName(Expression).Humanize();
+
+                    // If you don't want to decamelize the name you can use the following code instead of the previous line
+                    //title = GetMemberName(Expression);
+                }
+
+                builder.OpenElement(0, "th");
+                builder.AddContent(1, title);
+                builder.CloseElement();
+            });
+        }
+    }
+
+    //Render each cell
+    internal RenderFragment<TRowData> CellTemplate
+    {
+        get
+        {
+            //Build a list of data elements from rowData
+            return cellTemplate ??= (rowData => builder =>
+            {
+                //Build table data element
+                builder.OpenElement(0, "td");
+
+                //Check expression exists
+                if (compiledExpression != null)
+                {
+                    var value = compiledExpression(rowData);
+                    //If string is null return "null", else add the value in string format
+                    var formattedValue = string.IsNullOrEmpty(Format) ? value?.ToString() : 
+                                                    string.Format("{0:" + Format + "}", value);
+                    //Then add the content to the cell template
+                    builder.AddContent(1, formattedValue);
+                }
+                else
+                {
+                    //Add null elemets as they are and reproduce no cells
+                    builder.AddContent(2, ChildContent, rowData);
+                }
+
+                builder.CloseElement();
+            });
+        }
+    }
+
+    // Get the Member name from an expression.
+    // (customer => customer.Name) returns "Name"
+    private static string GetMemberName<T>(Expression<T> expression)
+    {
+        return expression.Body switch
+        {
+            //Return the member name from the expression
+            MemberExpression m => m.Member.Name,
+            //If the expression has only one value it is not supported
+            UnaryExpression u when u.Operand is MemberExpression m => m.Member.Name,
+            _ => throw new NotSupportedException("Expression of type '" + expression.GetType().ToString() + "' is not supported")
+        };
+    }
+}

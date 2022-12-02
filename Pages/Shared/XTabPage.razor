@@ -1,0 +1,34 @@
+﻿<div>
+    <!-- Only render the active tab page -->
+    @if (Parent.ActivePage == this)
+    {
+        @ChildContent
+    }
+</div>
+
+@code {
+    //PARAMETERS
+    [CascadingParameter]
+    private XTabControl? Parent { get; set; }
+
+    //Text for tab control "button"
+    [Parameter]
+    public string? Text { get; set; }
+
+    //Content to render
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    //On initialised
+    protected override async Task OnInitializedAsync()
+    {
+        //If no parent throw an error
+        if (Parent == null)
+            throw new ArgumentNullException(nameof(Parent), "TabPage must exist within a TabControl");
+
+        await base.OnInitializedAsync();
+
+        //Page must notify control parent of its existence
+        await Parent.AddPage(this);
+    }
+}

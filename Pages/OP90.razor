@@ -1,0 +1,309 @@
+﻿@page "/OP90"
+<PageTitle>Message Data</PageTitle>
+
+@using LinqFileParser
+@using OverviewServer.Services
+@using OverviewServer.Services.Background.Workers
+@using System.Timers
+@using System.Linq.Dynamic.Core
+@using Radzen
+@inject EquipmentMessagesService MessageService
+@inject RockwellDataService DataService
+@inject DialogService DialogService
+
+<!--ATattribute [Authorize] Authorize attribute above prevents unauthorised access to the page -->
+
+<!-- PAGE ------------------------------------------------------------->
+<!--------------------------------------------------------------------->
+
+@if (messages == null)
+{
+    <div id="app">
+        <div style="position:absolute; top:30vh; width:100%; text-align:center">
+        <h1>My application</h1>
+        <div style="display:flex; gap:10px; justify-content:center; align-items:center">
+            <div class="spinner-border" role="status"></div>
+            The application is loading...
+        </div>
+        </div>
+    </div>
+}
+else
+{
+    <!-- Tab control component -->
+    <RadzenCard class="row-12 rz-border-primary m-1 ">
+    <XTabControl>
+    <!-- TAB -------------------------------------------------------------->
+    <!--------------------------------------------------------------------->
+        <XTabPage Text=@pageTitle>
+                <div class=container>
+                    <div class="row p-2">
+                        <div class="col-md-8 p-2" >
+                             <RadzenCard class="row-10 rz-border-primary m-2">
+                                <RadzenText TextStyle="TextStyle.H3" TagName="TagName.H1" Class="my-2">
+                                        @stationName: <strong>@pageTitle</strong>
+                                </RadzenText>
+                                <RadzenText TextStyle="TextStyle.Body1" Class="my-1">
+                                            <strong>@stationName</strong> @pageTitle diagnostics.
+                                </RadzenText>
+                            </RadzenCard>
+                            <RadzenCard class="row-10 rz-border-primary m-4 ">
+                                <RadzenDataGrid @ref="radGrid" IsLoading=@isLoading Count="@count"
+                                            AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" 
+                                FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="8" AllowPaging="true" 
+                                PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true" Data="@messages" 
+                                TItem="EquipmentMessage" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or">
+                                    <Columns>
+                                        <!-- <RadzenDataGridColumn TItem="EquipmentMessage" Property="Position" Filterable="false" 
+                                            Title="No." Frozen="true" Width="5px" TextAlign="TextAlign.Center" />-->
+                                        <RadzenDataGridColumn TItem="EquipmentMessage" Property="Id" Filterable="false"
+                                                          Title="ID" Frozen="false" Width="10px" TextAlign="TextAlign.Left" />
+                                        <RadzenDataGridColumn TItem="EquipmentMessage" Property="Timestamp" Filterable="false"
+                                                          Title="Timestamp" Frozen="false" Width="15px" TextAlign="TextAlign.Left" />
+                                        <RadzenDataGridColumn TItem="EquipmentMessage" Property="Payload" Filterable="false" 
+                                        Title="Message" Frozen="false" Width="75px" TextAlign="TextAlign.Left" />
+                                    </Columns>
+                                </RadzenDataGrid>
+                            </RadzenCard>
+                        </div>
+                             <div class="col-sm-4 p-2">
+                                <RadzenCard class="row-10 rz-border-danger m-2 " >
+                                    <RadzenText Style="" TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Suggested fault resolution</RadzenText>
+                                <RadzenTextArea Placeholder="Suggestion..." Value="fault" ReadOnly="true" Class="w-100" />
+
+                                    <RadzenText Style="" TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Current fault</RadzenText>
+                                <RadzenTextArea Placeholder="Fault..." Value="fault" ReadOnly="true" Class="w-100" />
+                                </RadzenCard>
+                                <br/>
+                                <RadzenCard class="row-10 rz-border-primary m-2 ">
+                                    <RadzenCard Style="width: 100%; padding: 0; overflow: hidden;">
+                                        <div class="container">
+                                            <div class="row" style="margin-left: calc(var(--bs-gutter-x) * -1); margin-right: calc(var(--bs-gutter-x) * -1)">
+                                                <div class="col-lg p-3 title-card">
+                                                    <RadzenText TextStyle="TextStyle.H6" TagName="TagName.H5" Class="rz-info-dark">@routineName</RadzenText>
+                                                </div>
+                                                <RadzenText TextStyle="TextStyle.H6" TagName="TagName.H5" class="rz-info mb-0">Active PLC Steps</RadzenText>
+                                                <RadzenText TextStyle="TextStyle.Body2" class="mb-sm-2 mb-lg-0">@pos</RadzenText>
+                                            </div>
+                                        </div>
+                                    </RadzenCard>
+                                </RadzenCard>
+                            </div> 
+                        <div class="">
+                        <RadzenCard class="row-12 rz-border-primary m-1 " >
+                            <RadzenButton class="m-1" Click=@(args => Modal.Show<XModal>("Modal Popup Example", modalOptions))>Top Left</RadzenButton>
+                            <RadzenButton class="m-1" Click=@(args => Modal.Show<AddSuggestions>("Suggestion Box", modalOptions2))>Bottom Right</RadzenButton>
+                            <RadzenButton class="m-1" Click="@Reset">Reset</RadzenButton>
+                        </RadzenCard>   
+                    </div>
+                </div>       
+            </div>
+        </XTabPage>
+        <!-- TAB -------------------------------------------------------------->
+        <!--------------------------------------------------------------------->
+        <XTabPage Text="Tab 2">
+               
+            </XTabPage>
+        <!-- TAB -------------------------------------------------------------->
+        <!--------------------------------------------------------------------->
+        <XTabPage Text="Tab 3">
+            <div>
+                <h1>The third tab</h1>
+            </div>
+        </XTabPage>
+        <!-- TAB END ---------------------------------------------------------->
+        <!--------------------------------------------------------------------->
+    </XTabControl>
+</RadzenCard>
+}
+
+<!-- TAB END ---------------------------------------------------------->
+<!--------------------------------------------------------------------->
+<style>
+.title-card {
+    min-height: 72px;
+    background-color: var(--rz-info-lighter);
+}
+
+.price-badge {
+    font-size: 16px;
+    font-weight: bold;
+    line-height: 20px;
+    padding: 8px;
+}
+</style>
+<!-- POPUP ------------------------------------------------------------>
+<!--------------------------------------------------------------------->
+
+
+<!-- ACTIONS ---------------------------------------------------------->
+<!--------------------------------------------------------------------->
+@code {
+    string stationName = "OP090";
+    string pageTitle = "Cell";
+    string pageDescriptor = "Cell Messages";
+    string routineName = "OP090: Stn090_Steps";
+    int refreshRate = 1000;
+    int count = 1; // Count="@count"
+    bool isLoading = false;
+    bool smooth = true;
+    bool showDataLabels = false;
+    RadzenDataGrid<EquipmentMessage>? radGrid = new RadzenDataGrid<EquipmentMessage>();
+    IEnumerable<EquipmentMessage>? messages;
+    List<string>? positions = new List<string>();
+    string fault;
+    string suggestion;
+    string pos;
+
+    // Modals
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
+    // Left
+    ModalOptions modalOptions = new ModalOptions()
+    {
+        Position = ModalPosition.TopLeft
+        //Position = ModalPosition.Custom,
+        //PositionCustomClass = "custom-modal-position"
+    };
+    // Right
+    ModalOptions modalOptions2 = new ModalOptions()
+        {
+            Position = ModalPosition.BottomRight
+            //Position = ModalPosition.Custom,
+            //PositionCustomClass = "custom-modal-position"
+        };
+
+    // Reset
+    async Task Reset()
+    {
+        radGrid.Reset(true);
+        await radGrid.FirstPage(true);
+    }
+
+    // On initialized
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        Timer timer = new Timer(refreshRate);
+        timer.Elapsed += (s, e) => { InvokeAsync(radGrid.Reload); };
+        timer.AutoReset = true;
+        //Start the timer
+        timer.Start();
+
+        messages = DataService.messages[0]; // Must match the group position of the messages
+        positions = DataService.positions[0];
+
+        foreach (string position in positions)
+        {
+            pos = pos + position + " : ";
+        }
+    }
+
+    // Load data
+    async Task LoadData(LoadDataArgs args)
+    {
+        isLoading = true;
+        await Task.Yield();
+        // Can await the service result here
+        // Then result.Value.AsODataEnumerable();
+        messages = DataService.messages[0]; // Must match the group position of the messages
+        positions = DataService.positions[0];
+
+        foreach (string position in positions)
+        {
+            pos = pos + position + " : ";
+        }
+        
+        count = messages.Count();
+        await InvokeAsync(() => StateHasChanged());
+        isLoading = false;
+    }
+
+    
+
+    /// THIS WORKS ////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////
+
+    //Dec
+    //private Timer? timer;
+
+    ////Call timer after first render
+    //protected override async Task OnAfterRenderAsync(bool firstRender)
+    //{
+    //    if(firstRender)
+    //    {
+    //        timer = new Timer();
+    //        timer.Interval = refreshRate;
+    //        timer.Elapsed += OnTimerInterval;
+    //        timer.AutoReset = true;
+    //        //Start the timer
+    //        timer.Enabled = true;
+    //    }
+    //    await base.OnAfterRenderAsync(firstRender);
+    //}
+
+    ////Timer call on interval
+    //private async void OnTimerInterval(object sender, ElapsedEventArgs e)
+    //{
+    //    //messages = DataService.messages[0];
+    //    await InvokeAsync(() => StateHasChanged());
+    //}
+
+    //<RadzenButton Text="Test Popup" Click=@(args => 
+    //DialogService.Confirm("Confirm Action?", "Test Popup", 
+      //                   new ConfirmOptions() { OkButtonText = "Yes", CancelButtonText = "No" })) />
+
+    //<RadzenCard>
+    //                <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Placeholder</RadzenText>
+    //                <RadzenTextBox Placeholder="Search..." Change=@(args => OnChange(args, "TextBox with placeholder")) Class="w-100" />
+    //</RadzenCard>
+    //<EventConsole @ref=@console Class="mt-4" />
+    //EventConsole console;
+
+    //void OnChange(string value, string name)
+    //{
+    //    console.Log($"{name} value changed to {value}");
+    //}
+
+    //Reset data grid - add to page: <RadzenButton Text="Reset" Click="@Reset" Style="margin-bottom: 20px;" />
+    //async Task Reset()
+    //{
+    //    grid.Reset(true);
+    //    await grid.FirstPage(true);
+    //}
+
+    //Load data - add LoadData="@LoadData" to <RadzenDataGrid>
+    //async Task LoadData(LoadDataArgs args)
+    //{
+    //    isLoading = true;
+
+    //    await Task.Yield();
+
+    //    // This demo is using https://dynamic-linq.net
+    //    var query = DataService.messages[0].AsQueryable();
+
+    //    if (!string.IsNullOrEmpty(args.Filter))
+    //    {
+    //        // Filter via the Where method
+    //        query = query.Where(args.Filter);
+    //    }
+
+    //    if (!string.IsNullOrEmpty(args.OrderBy))
+    //    {
+    //        // Sort via the OrderBy method
+    //        query = query.OrderBy(args.OrderBy);
+    //    }
+
+    //    // Important!!! Make sure the Count property of RadzenDataGrid is set.
+    //    count = query.Count();
+
+    //    // Perform paginv via Skip and Take.
+    //    messages = query.Skip(args.Skip.Value).Take(args.Top.Value).ToList();
+
+    //    isLoading = false;
+    //}
+}
+
+
+

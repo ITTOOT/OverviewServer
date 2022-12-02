@@ -1,0 +1,148 @@
+﻿@page "/OP40"
+<PageTitle>Message Data</PageTitle>
+
+@using LinqFileParser
+@using OverviewServer.Services
+@using OverviewServer.Services.Background.Workers
+@using System.Timers
+@inject EquipmentMessagesService MessageService
+@inject RockwellDataService DataService
+
+<!--ATattribute [Authorize] Authorize attribute above prevents unauthorised access to the page -->
+
+<!-- PAGE ------------------------------------------------------------->
+<!--------------------------------------------------------------------->
+
+@if (messages == null)
+{
+        <div id="app">
+              <div style="position:absolute; top:30vh; width:100%; text-align:center">
+                <h1>My application</h1>
+                <div style="display:flex; gap:10px; justify-content:center; align-items:center">
+                  <div class="spinner-border" role="status"></div>
+                  The application is loading...
+                </div>
+              </div>
+            </div>
+}
+else
+{
+    <!-- Tab control component -->
+    <XTabControl>
+          <XTabPage Text=@pageTitle>
+            <div>
+                <!-- DIV MUST BE FIRST ELEMENT ---------------------------------------->
+
+                <!-- TITLE ------------------------------------------------------------>
+                <!--------------------------------------------------------------------->
+                <h1>@stationName @pageTitle</h1>
+                <p>@stationName @pageDescriptor</p>
+
+                <!-- TABLE ------------------------------------------------------------>
+                <!--------------------------------------------------------------------->
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Message</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var message in messages)
+                        {
+                            <tr>
+                                <td>@message.Timestamp</td>
+                                <td>@message.Payload</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </XTabPage>
+        <XTabPage Text="Tab 2">
+            <h1 Class="my-4" >@pageTitle</h1>
+            <p Class="my-4" ><strong>@pageDescriptor</strong></p>
+            <div class=container>
+                <div class=row>
+                    <div class="col-md">
+                            <XGrid Items="messages" class="table rz-border-primary" style="height: 335px"
+                                RowClass='(row, index) => row.Timestamp.StartsWith("Fault") ? "table-danger" : ""'>
+                            <XGridColumn TRowData="EquipmentMessage" Expression="c => c.Timestamp" Format="d" />
+                            <XGridColumn TRowData="EquipmentMessage" Expression="c => c.Payload" Title="Message" />
+                                <!--<XGridColumn TRowData="EquipmentMessage" Title="Payloads">@messages.Count() Message</GridColumn>-->
+                        </XGrid>
+                        </div>
+                    <div class="col-sm">One of two columns
+                    <div class=row>C2 Row 1
+                        </div>
+                        <div class=row>
+                        C2 Row 2
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </XTabPage>
+        <XTabPage Text="Tab 3">
+        <h1>The third tab</h1>
+        </XTabPage>
+    </XTabControl>
+}
+
+<!-- ACTIONS ---------------------------------------------------------->
+<!--------------------------------------------------------------------->
+@code {
+    string stationName = "OP040:";
+    string pageTitle = "Cell";
+    string pageDescriptor = "Cell Messages";
+    int refreshRate = 1000;
+    private List<EquipmentMessage>? messages;
+    //IEnumerable<EquipmentMessage>? messages;
+
+    //On itialisation or refresh
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        messages = DataService.messages[0];
+    }
+
+    /// THIS WORKS ////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////
+
+    //Dec
+    private Timer? timer;
+
+    //Call timer after first render
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if(firstRender)
+        {
+            timer = new Timer();
+            timer.Interval = refreshRate;
+            timer.Elapsed += OnTimerInterval;
+            timer.AutoReset = true;
+            //Start the timer
+            timer.Enabled = true;
+        }
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    //Timer call on interval
+    private async void OnTimerInterval(object sender, ElapsedEventArgs e)
+    {
+        messages = DataService.messages[0];
+        await InvokeAsync(() => StateHasChanged());
+    }
+
+    ////Dynamic Content
+    //public RenderFragment DynamicContent = builder =>
+    //{
+    //    builder.AddContent(1, "JavaScript (JS) is an interpreted computer programming language." +
+    //    "It was originally implemented as part of web browsers so that client-side scripts could" +
+    //    "interact with the user, control the browser, communicate asynchronously, and alter the" +
+    //    "document content that was displayed.[5] More recently, however, it has become common in both" +
+    //    "game development and the creation of desktop applications.");
+    //};
+}
+
+
+

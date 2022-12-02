@@ -1,0 +1,94 @@
+﻿
+<RadzenFieldset Text="Suggestion Box">
+    <div class="row">
+        <div class="col-md-4 align-items-center d-flex">
+            <RadzenLabel Text="Related Message" />
+        </div>
+        <div class="col-md-8">
+            <RadzenDropDown @bind-Value="suggestion.Id" AllowClear="true" Placeholder="Select message ID"
+                            Data="@messages" style="width: 100%;" TextProperty="Id" ValueProperty="MessageNr" Name="MessageId">
+            </RadzenDropDown>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-4 align-items-center d-flex">
+            <RadzenLabel Text="Suggestion ID" />
+        </div>
+        <div class="col-md-8">
+            <RadzenTextBox style="width: 100%;" Name="SuggestionNr" />
+        </div>
+    </div>
+    <br />
+    <br />
+    <div class="row">
+        <div class="col-md-4 align-items-center d-flex">
+            <RadzenLabel Text="Suggestion Date" />
+        </div>
+        <div class="col-md-8">
+            <RadzenDatePicker style="width: 100%;" Name="Date" @bind-Value="suggestion.Date" />
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-4 align-items-center d-flex">
+            <RadzenLabel Text="Suggestion" />
+        </div>
+        <div class="col-md-8">
+            <RadzenTextArea style="width: 100%;" Name="Actions" />
+        </div>
+    </div>
+</RadzenFieldset>
+<div class="row justify-content-center">
+    <div class="col-md-12 d-flex align-items-end justify-content-center" style="margin-top: 16px;">
+        <RadzenButton ButtonType="ButtonType.Submit" Icon="save" Text="Save" />
+        <RadzenButton ButtonStyle="ButtonStyle.Light" Icon="cancel" style="display: inline-block; margin-left: 10px;" Text="Cancel" Click="@Cancel" />
+    </div>
+</div>
+
+@code {
+    public class Suggestion
+    {
+        public int Id { get; set; }
+        public string MessageNr { get; set; }
+        public DateTime Date { get; set; }
+        public string Actions { get; set; }
+    }
+
+    public class Message
+    {
+        public int Id { get; set; }
+        public string MessageNr { get; set; }
+    }
+
+    public class Country
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+    }
+
+    Suggestion suggestion = new Suggestion()
+        {
+            Date = DateTime.Now
+        };
+
+    List<Message> messages = new List<Message>()
+{
+        new Message() { Id = 1, MessageNr = "5555555555554444" },
+        new Message() { Id = 2, MessageNr = "4012888888881881" }
+    };
+
+    List<Country> countries = new List<Country>()
+{
+        new Country() { Id = 1, Name = "USA" },
+        new Country() { Id = 2, Name = "Germany" }
+    };
+
+    void Submit(Suggestion arg)
+    {
+        //
+    }
+
+    void Cancel()
+    {
+        //
+    }
+}

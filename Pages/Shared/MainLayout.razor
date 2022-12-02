@@ -1,0 +1,53 @@
+﻿@inherits LayoutComponentBase
+
+<PageTitle>OverviewServer</PageTitle>
+<!-- <div class="page"> -->
+<RadzenLayout class="rz-shadow-3" Style="height: 450; grid-template-areas: 'rz-sidebar rz-header' 'rz-sidebar rz-body'">
+
+        <RadzenHeader>
+            <ChildContent>
+          <div class="d-flex flex-row align-items-center">
+            
+              <RadzenSidebarToggle Click="@(() => sidebarExpanded = !sidebarExpanded)"/>
+
+                <RadzenLabel Text="Overviewer" />
+
+              <a>@today.ToString("dddd, dd MMMM yyyy")</a>
+
+                <LoginDisplay />
+          </div>
+          </ChildContent>
+        </RadzenHeader>
+
+        <RadzenSidebar @bind-Expanded="@sidebarExpanded" Style="width: 150px">
+            @*<NavMenu />*@
+            <RadzenPanelMenu >
+                <RadzenPanelMenuItem Text="Home" Icon="home" Path="index"/>
+                <RadzenPanelMenuItem Text="counter" Icon="datagrid" Path="counter"/>
+                <RadzenPanelMenuItem Text="Register" Icon="breadcrumb" Path="Areas\Identity\Pages\Account\Register"/>
+                <RadzenPanelMenuItem Text="OP40" Icon="menu" Path="OP40"/>
+                <RadzenPanelMenuItem Text="OP90" Icon="menu" Path="OP90"/>
+                <RadzenPanelMenuItem Text="Data" Icon="trends" Path="dataVis"/>
+                <RadzenPanelMenuItem Text="Historian" Icon="menu" Path="Historian"/>
+                <AuthorizeView>
+                    <!-- Check if page can be navigated to via https://localhost:?????/pageName -->
+                    <RadzenPanelMenuItem Text="Authorised" Icon="menu" Path="Auth"/>
+                </AuthorizeView>
+            </RadzenPanelMenu>
+        </RadzenSidebar>
+
+        <main>
+            <article class="content px-4">
+                @Body
+            </article>
+        </main>
+    </RadzenLayout> 
+<!--  -->
+<RadzenDialog />
+<RadzenTooltip />
+
+@code {
+    DateTime today = DateTime.Today;
+    bool sidebarExpanded = true;
+    //int pageHeight = 450;
+}

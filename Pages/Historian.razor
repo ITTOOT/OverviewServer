@@ -1,0 +1,232 @@
+﻿@page "/Historian"
+<PageTitle>Message Data</PageTitle>
+
+@using LinqFileParser
+@using OverviewServer.Services
+@using OverviewServer.Services.Background.Workers
+@using System.Timers
+@using System.Linq.Dynamic.Core
+@using Radzen
+@inject EquipmentMessagesService MessageService
+@inject RockwellDataService DataService
+
+<!--ATattribute [Authorize] Authorize attribute above prevents unauthorised access to the page -->
+
+<!-- PAGE ------------------------------------------------------------->
+<!--------------------------------------------------------------------->
+
+@if (messages == null)
+{
+    <div id="app">
+          <div style="position:absolute; top:30vh; width:100%; text-align:center">
+            <h1>My application</h1>
+            <div style="display:flex; gap:10px; justify-content:center; align-items:center">
+              <div class="spinner-border" role="status"></div>
+              The application is loading...
+            </div>
+          </div>
+        </div>
+}
+else
+{
+    <!-- Tab control component -->
+    <XTabControl>
+          <XTabPage Text=@pageTitle>
+            <div>
+                <!-- DIV MUST BE FIRST ELEMENT ---------------------------------------->
+
+                <!-- TITLE ------------------------------------------------------------>
+                <!--------------------------------------------------------------------->
+                <h1>@stationName @pageTitle</h1>
+                <p>@stationName @pageDescriptor</p>
+
+                <!-- TABLE ------------------------------------------------------------>
+                <!--------------------------------------------------------------------->
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Message</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var message in messages)
+                        {
+                            <tr>
+                                <td>@message.Timestamp</td>
+                                <td>@message.Payload</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </XTabPage>
+        <XTabPage Text="Tab 2">
+                <RadzenText TextStyle="TextStyle.H3" TagName="TagName.H1" Class="my-4">
+                        DataGrid <strong>LoadData</strong>
+                    </RadzenText>
+                    <RadzenText TextStyle="TextStyle.Body1" Class="my-4">
+                            The <strong>LoadData</strong> event allows you to perform custom paging, sorting and filtering.
+                </RadzenText>
+                <div class=container>
+                    <div class=row>
+                            <div class="col-md-8 p-2" >
+                    <RadzenCard class="row-10 rz-border-primary m-3 ">
+                                <RadzenDataGrid @ref="gridR" IsLoading=@isLoading 
+                                AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" 
+                                FilterMode="FilterMode.Advanced" AllowSorting="true" PageSize="5" AllowPaging="true" 
+                                PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true" Data="@messages" 
+                                TItem="EquipmentMessage" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or">
+                                <Columns>
+                                    <!-- <RadzenDataGridColumn TItem="EquipmentMessage" Property="Position" Filterable="false" 
+                                        Title="No." Frozen="true" Width="5px" TextAlign="TextAlign.Center" />-->
+                                    <RadzenDataGridColumn TItem="EquipmentMessage" Property="Timestamp" Filterable="false" 
+                                         Title="Timestamp" Frozen="true" Width="10px" TextAlign="TextAlign.Left" />
+                                    <RadzenDataGridColumn TItem="EquipmentMessage" Property="Payload" Filterable="false" 
+                                        Title="Message" Frozen="true" Width="80px" TextAlign="TextAlign.Left" />
+                                </Columns>
+                            </RadzenDataGrid>
+</RadzenCard>
+                    <RadzenCard class="row-10 rz-border-danger m-3 ">
+                    <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Suggested fault resolution</RadzenText>
+                                <RadzenTextArea Placeholder="Suggestion..." Value="fault" ReadOnly="true" Class="w-100" />
+  
+                        <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Current prioritory fault</RadzenText>
+                                <RadzenTextArea Placeholder="Fault..." Value="fault" ReadOnly="true" Class="w-100" />
+                    </RadzenCard>
+                        </div>
+                        <div class="col-sm-4">
+                            <RadzenCard class="row-10 rz-border-danger m-3 ">
+                                    <h3>C2 Row 1 Title</h3>
+                                        <h3>Critical Data grid</h3>
+                                        <h3>Critical Data grid</h3>
+                                            <h3>Critical Data grid</h3>
+                                                <h3>Critical Data grid</h3>
+                                    </RadzenCard>
+                                        <RadzenCard class="row-10 rz-border-danger m-3 ">
+                                     <h3>C2 Row 2 Title</h3>
+                                        <h3>Truth Data grid</h3>
+                                        <h3>Truth Data grid</h3>
+                                      <h3>Truth Data grid</h3>
+                                      <h3>Truth Data grid</h3>
+                      
+                            </RadzenCard>
+                        </div>
+                                
+                </div>       
+            </div>
+                
+        </XTabPage>
+        <XTabPage Text="Tab 3">
+
+            <div>
+                <h1>The third tab</h1>
+
+            </div>
+        </XTabPage>
+    </XTabControl>
+}
+
+<!-- ACTIONS ---------------------------------------------------------->
+<!--------------------------------------------------------------------->
+@code {
+    string stationName = "Historian:";
+    string pageTitle = "Database";
+    string pageDescriptor = "Order, sort, analyse and export historical records";
+    int refreshRate = 1000;
+    int count = 1; // Count="@count"
+    bool isLoading = false;
+    bool smooth = true;
+    bool showDataLabels = false;
+    RadzenDataGrid<EquipmentMessage>? gridR;
+    IEnumerable<EquipmentMessage>? messages;
+    string fault;
+    string suggestion;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        messages = DataService.messages[0];
+    }
+
+    /// THIS WORKS ////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////////
+
+    //Dec
+    private Timer? timer;
+
+    //Call timer after first render
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if(firstRender)
+        {
+            timer = new Timer();
+            timer.Interval = refreshRate;
+            timer.Elapsed += OnTimerInterval;
+            timer.AutoReset = true;
+            //Start the timer
+            timer.Enabled = true;
+        }
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    //Timer call on interval
+    private async void OnTimerInterval(object sender, ElapsedEventArgs e)
+    {
+        messages = DataService.messages[0];
+        await InvokeAsync(() => StateHasChanged());
+    }
+
+    //<RadzenCard>
+    //                <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Placeholder</RadzenText>
+    //                <RadzenTextBox Placeholder="Search..." Change=@(args => OnChange(args, "TextBox with placeholder")) Class="w-100" />
+    //</RadzenCard>
+    //<EventConsole @ref=@console Class="mt-4" />
+    //EventConsole console;
+
+    //void OnChange(string value, string name)
+    //{
+    //    console.Log($"{name} value changed to {value}");
+    //}
+
+    //Reset data grid - add to page: <RadzenButton Text="Reset" Click="@Reset" Style="margin-bottom: 20px;" />
+    //async Task Reset()
+    //{
+    //    grid.Reset(true);
+    //    await grid.FirstPage(true);
+    //}
+
+    //Load data - add LoadData="@LoadData" to <RadzenDataGrid>
+    //async Task LoadData(LoadDataArgs args)
+    //{
+    //    isLoading = true;
+
+    //    await Task.Yield();
+
+    //    // This demo is using https://dynamic-linq.net
+    //    var query = DataService.messages[0].AsQueryable();
+
+    //    if (!string.IsNullOrEmpty(args.Filter))
+    //    {
+    //        // Filter via the Where method
+    //        query = query.Where(args.Filter);
+    //    }
+
+    //    if (!string.IsNullOrEmpty(args.OrderBy))
+    //    {
+    //        // Sort via the OrderBy method
+    //        query = query.OrderBy(args.OrderBy);
+    //    }
+
+    //    // Important!!! Make sure the Count property of RadzenDataGrid is set.
+    //    count = query.Count();
+
+    //    // Perform paginv via Skip and Take.
+    //    messages = query.Skip(args.Skip.Value).Take(args.Top.Value).ToList();
+
+    //    isLoading = false;
+    //}
+}
+
+
+
